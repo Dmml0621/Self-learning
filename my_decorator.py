@@ -60,3 +60,26 @@ def myfunc2():
 
 myfunc1()
 myfunc2()
+
+# calculate runtime
+import time
+
+def time_me(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        fn(*args, **kwargs)
+        print(f'Runtime of {fn.__name__}: {time.time() - start} second')
+    return wrapper
+
+@time_me
+def func():
+    num = 0
+    for i in range(1000):
+        num += i
+        for j in range(1000):
+            num -= j
+            for k in range(1000):
+                num += k
+
+func()

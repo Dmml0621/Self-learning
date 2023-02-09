@@ -1,0 +1,74 @@
+const database = 'grades';
+const collection = 'testscores';
+
+use(database);
+
+db.createCollection(collection);
+
+// insert
+db.testscores.insertOne({'name': 'jntm', 'id': 114514, 'alias': 'ikun'});
+db.testscores.insertOne({'name': 'hhy', 'id': 529426, 'alias': 'haoyou'});
+db.testscores.insertOne({'name': 'xjb', 'id': 99926, 'alias': null});
+db.testscores.insertMany([
+    {'name': 'fw', 'id': 10101},
+    {'name': 'tnt', 'id': 10001, 'alias': 'tft'}
+]);
+
+// query
+use sample_restaurants;
+show collections;
+
+for (var key in db.restaurants.findOne()) {print(key);}
+
+db.restaurants.find({cuisine: 'Chinese'});
+
+db.restaurants.find({cuisine: {$in: ['Chinese', 'Mexican']}});
+
+db.restaurants.find({
+    borough: 'Manhattan', 
+    'address.zipcode': {$lte: '10020'}
+});
+
+db.restaurants.find({
+    borough: 'Brooklyn', 
+    $or: [
+        {cuisine: {$in: ['American', 'Mexican']}}, 
+        {grades: {$size: 10}}
+    ]
+});
+
+db.restaurants.find({'grades.0.grade': 'A'});
+
+db.restaurants.find({grades: {$elemMatch: {'grade': 'A', 'score': 13}}});
+
+db.restaurants.find({cuisine: 'Mexican'}, {name: 1, borough: 1, 'address.street': 1, _id: 0});
+
+db.restaurants.find({cuisine: 'Mexican'}, {grades: 0, _id: 0, restaurant_id: 0});
+
+db.restaurants.find({cuisine: 'Mexican'}, {name: 1, borough: 1, grades: {$slice: [0, 3]}, _id: 0});
+
+var myCursor = db.restaurants.find({cuisine: 'American'}, {grades: 0, address: 0});
+myCursor.objsLeftInBatch();
+var oneDoc = myCursor.hasNext() ? myCursor.next() : null;
+while (myCursor.hasNext()) {
+    printjson(myCursor.next());
+}
+myCursor.forEach(printjson)
+var documentArray = myCursor.toArray();
+var myDocument = documentArray[3];
+var myCursor = db.users.find().noCursorTimeout(); // prevent timeout after 10min
+myCursor.close() // either close the cursor or exhuast it
+
+use grades;
+show collections;
+
+db.testscores.find({alias: null});
+
+db.testscores.find({alias: {$exists: false}});
+
+use sample_geospatial;
+show collections;
+
+db.shipwrecks.find({'coordinates.1': {$lt: 10, $gt: -10}});
+
+
