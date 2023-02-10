@@ -11,6 +11,7 @@ db.testscores.insertOne({'name': 'hhy', 'id': 529426, 'alias': 'haoyou'});
 db.testscores.insertOne({'name': 'xjb', 'id': 99926, 'alias': null});
 db.testscores.insertMany([
     {'name': 'fw', 'id': 10101},
+    {'name': 'fw', 'id': 10102, 'alias': 'ftc'},
     {'name': 'tnt', 'id': 10001, 'alias': 'tft'}
 ]);
 
@@ -71,4 +72,187 @@ show collections;
 
 db.shipwrecks.find({'coordinates.1': {$lt: 10, $gt: -10}});
 
+// update
+use grades;
+show collections;
 
+db.testscores.updateOne({'name': 'fw'}, {$set: {'id': 20202}});
+
+db.testscores.updateMany(
+    {'name': 'fw'}, 
+    {$set: {'name': 'ffww'}, $currentDate: {lastModified: true}}
+);
+
+db.testscores.updateMany(
+    {'alias': 'haoyou'}, 
+    {$set: {'food': [{'title': 'guoba', 'cal': 100}, {'title': 'smilk', 'cal': '50'}]}}
+);
+
+db.testscores.replaceOne(
+    {'name': 'dmml'}, 
+    {'name': 'dmml', 'id': 621, 'alias': 'hong'},
+    {upsert: true}
+);
+
+db.testscores.replaceOne(
+    {'name': 'dmml'}, 
+    {'name': 'dmml', 'id': 508621, 'alias': 'honghong'}
+);
+
+// update with aggregation pipeline
+db.createCollection('students');
+
+db.students.insertMany( [
+   { _id: 1, test1: 95, test2: 92, test3: 90, modified: new Date("01/05/2020") },
+   { _id: 2, test1: 98, test2: 100, test3: 102, modified: new Date("01/05/2020") },
+   { _id: 3, test1: 95, test2: 110, modified: new Date("01/04/2020") }
+] );
+
+db.students.updateOne( { _id: 3 }, [ { $set: { "test3": 98, modified: "$$NOW"} } ] )
+
+db.students2.insertMany( [
+   { "_id" : 1, quiz1: 8, test2: 100, quiz2: 9, modified: new Date("01/05/2020") },
+   { "_id" : 2, quiz2: 5, test1: 80, test2: 89, modified: new Date("01/05/2020") },
+] );
+
+db.students2.updateMany( {},
+  [
+    { $replaceRoot: { newRoot: { $mergeObjects: [ { quiz1: 0, quiz2: 0, test1: 0, test2: 0 }, "$$ROOT" ] }} },
+    { $set: { modified: "$$NOW"}  }
+  ]
+);
+
+db.students3.insertMany( [
+   { "_id" : 1, "tests" : [ 95, 92, 90 ], "modified" : ISODate("2019-01-01T00:00:00Z") },
+   { "_id" : 2, "tests" : [ 94, 88, 90 ], "modified" : ISODate("2019-01-01T00:00:00Z") },
+   { "_id" : 3, "tests" : [ 70, 75, 82 ], "modified" : ISODate("2019-01-01T00:00:00Z") }
+] );
+
+db.students3.updateMany(
+   { },
+   [
+     { $set: { average : { $trunc: [ { $avg: "$tests" }, 0 ] }, modified: "$$NOW" } },
+     { $set: { grade: { $switch: {
+                           branches: [
+                               { case: { $gte: [ "$average", 90 ] }, then: "A" },
+                               { case: { $gte: [ "$average", 80 ] }, then: "B" },
+                               { case: { $gte: [ "$average", 70 ] }, then: "C" },
+                               { case: { $gte: [ "$average", 60 ] }, then: "D" }
+                           ],
+                           default: "F"
+     } } } }
+   ]
+);
+
+db.students4.insertMany( [
+  { "_id" : 1, "quizzes" : [ 4, 6, 7 ] },
+  { "_id" : 2, "quizzes" : [ 5 ] },
+  { "_id" : 3, "quizzes" : [ 10, 10, 10 ] }
+] );
+
+db.students4.updateOne({'_id': 2}, [{$set: {quizzes: {$concatArrays: ['$quizzes', [8, 6]]}}}]);
+
+db.temperatures.insertMany( [
+  { "_id" : 1, "date" : ISODate("2019-06-23"), "tempsC" : [ 4, 12, 17 ] },
+  { "_id" : 2, "date" : ISODate("2019-07-07"), "tempsC" : [ 14, 24, 11 ] },
+  { "_id" : 3, "date" : ISODate("2019-10-30"), "tempsC" : [ 18, 6, 8 ] }
+] );
+
+db.temperatures.insertMany( [
+  { "_id" : 1, "date" : ISODate("2019-06-23"), "tempsC" : [ 4, 12, 17 ] },
+  { "_id" : 2, "date" : ISODate("2019-07-07"), "tempsC" : [ 14, 24, 11 ] },
+  { "_id" : 3, "date" : ISODate("2019-10-30"), "tempsC" : [ 18, 6, 8 ] }
+] );
+
+db.temperatures.updateMany( { },
+  [
+    { $addFields: { "tempsF": {
+          $map: {
+             input: "$tempsC",
+             as: "celsius",
+             in: { $add: [ { $multiply: ["$$celsius", 9/5 ] }, 32 ] }
+          }
+    } } }
+  ]
+);
+
+// delete
+db.testscores.deleteMany({'alias': 'ftc'});
+
+db.testscores.remove({id: {$gte: 100000} }, true);
+
+// bulk write, default is ordered
+// insertOne, updateOne, updateMany, replaceOne, deleteOne, deleteMany
+
+db.pizzas.insertMany( [
+   { _id: 0, type: "pepperoni", size: "small", price: 4 },
+   { _id: 1, type: "cheese", size: "medium", price: 7 },
+   { _id: 2, type: "vegan", size: "large", price: 8 }
+] );
+
+try {
+   db.pizzas.bulkWrite( [
+      { insertOne: { document: { _id: 3, type: "beef", size: "medium", price: 6 } } },
+      { insertOne: { document: { _id: 4, type: "sausage", size: "large", price: 10 } } },
+      { updateOne: {
+         filter: { type: "cheese" },
+         update: { $set: { price: 8 } }
+      } },
+      { deleteOne: { filter: { type: "pepperoni"} } },
+      { replaceOne: {
+         filter: { type: "vegan" },
+         replacement: { type: "tofu", size: "small", price: 4 }
+      } }
+   ] )
+} catch( error ) {
+   print( error )
+};
+
+// aggregation pipeline
+db.orders.insertMany( [
+   { _id: 0, name: "Pepperoni", size: "small", price: 19,
+     quantity: 10, date: ISODate( "2021-03-13T08:14:30Z" ) },
+   { _id: 1, name: "Pepperoni", size: "medium", price: 20,
+     quantity: 20, date : ISODate( "2021-03-13T09:13:24Z" ) },
+   { _id: 2, name: "Pepperoni", size: "large", price: 21,
+     quantity: 30, date : ISODate( "2021-03-17T09:22:12Z" ) },
+   { _id: 3, name: "Cheese", size: "small", price: 12,
+     quantity: 15, date : ISODate( "2021-03-13T11:21:39.736Z" ) },
+   { _id: 4, name: "Cheese", size: "medium", price: 13,
+     quantity:50, date : ISODate( "2022-01-12T21:23:13.331Z" ) },
+   { _id: 5, name: "Cheese", size: "large", price: 14,
+     quantity: 10, date : ISODate( "2022-01-12T05:08:13Z" ) },
+   { _id: 6, name: "Vegan", size: "small", price: 17,
+     quantity: 10, date : ISODate( "2021-01-13T05:08:13Z" ) },
+   { _id: 7, name: "Vegan", size: "medium", price: 18,
+     quantity: 10, date : ISODate( "2021-01-13T05:10:13Z" ) }
+] );
+
+db.orders.aggregate([
+    {
+        $match: {size: 'medium'}
+    }, 
+    {
+        $group: {
+            _id: "$name", 
+            totalQuantity: {$sum: "$quantity"}, 
+            totalAvgPrice: {$avg: "$price"}
+        }
+    }
+]);
+
+db.orders.aggregate([
+    {
+        $match: {date: {$gte: new ISODate("2020-01-30"), $lt: new ISODate("2022-01-30")}}
+    },
+    {
+        $group: {
+            _id: {$dateToString: {format: "%Y-%m-%d", date: "$date"}},
+            totalOrderValue: {$sum: {$multiply: ["$price", "$quantity"]}},
+            averageOrderQuantity: { $avg: "$quantity" }
+        }
+    },
+    {
+        $sort: {totalOrderValue: -1}
+    }
+]);
