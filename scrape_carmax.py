@@ -3,6 +3,8 @@ import os
 import pandas as pd
 import urllib
 import argparse
+import requests
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
@@ -14,8 +16,8 @@ args = parser.parse_args()
 SAVE_DIR = 'car_imgs/'
 METADATA_DIR = 'metadata/'
 LOAD_MORE_TIMES = args.pages
+BASE_URL = 'https://www.carmax.com/cars/all'
 
-base_url = 'https://www.carmax.com/cars/all'
 common_states = [
     "AL", "AZ", "AR", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
     "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", 
@@ -25,6 +27,7 @@ common_states = [
 ]
 
 list_images = list()
+list_colors = list()
 list_makes = list()
 list_models = list()
 list_years = list()
@@ -75,6 +78,15 @@ def change_store(driver, state_name, store_index, load_time=3):
         driver.find_element(By.CLASS_NAME, 'store-chooser-modal_header-close').click()
         return 0
 
+def get_color(car_id):
+    url = 'https://www.carmax.com/car/' + car_id
+    page = requests.get(url, headers={"User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36"})
+    soup = BeautifulSoup(page.text, 'html.parser')
+    info = soup.select('.tombstone-badge')
+    for i in info:
+        if 'Color' in str(i):
+            return i.text
+    return 0
 
 def create_dir():
     if SAVE_DIR[:-1] not in os.listdir():
@@ -90,9 +102,9 @@ options = webdriver.ChromeOptions()
 options.add_argument("--headless=new")
 driver = webdriver.Chrome(desired_capabilities=dc, options=options)
 
-driver.get(base_url)
+driver.get(BASE_URL)
 
-for state in common_states:
+for state in common_states[:5]:
 
     cnt = get_state_stores_count(driver, state)
     print(f'Found {cnt} stores in {state}')
@@ -121,20 +133,28 @@ for state in common_states:
         for k, img in enumerate(car_imgs):
             try:
                 src = img.get_attribute('src')
-                filename = src.split('/')[4] + '.jpg'
+                car_id = src.split('/')[4]
+                filename = car_id + '.jpg'
+                color = get_color(car_id)
+                if not color:
+                    raise Exception
                 year = car_year_makes[k].text.split()[0]
                 make = car_year_makes[k].text.split()[1]
                 model = car_model_trims[k].text
                 urllib.request.urlretrieve(src, SAVE_DIR + filename)
+
                 list_images.append(filename)
+                list_colors.append(color)
                 list_years.append(year)
                 list_makes.append(make)
                 list_models.append(model)
             except:
+                print('Get color/year/model/make error!')
                 continue
 
 df_meta = pd.DataFrame({
     'filename': list_images,
+    'color': list_colors,
     'year': list_years,
     'make': list_makes,
     'model': list_models

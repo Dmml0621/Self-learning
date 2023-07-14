@@ -4,3 +4,4 @@ metastore_db
 data
 fashion_clf/DF
 car_imgs
+test.py
