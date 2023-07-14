@@ -104,7 +104,7 @@ driver = webdriver.Chrome(desired_capabilities=dc, options=options)
 
 driver.get(BASE_URL)
 
-for state in common_states[:5]:
+for state in common_states:
 
     cnt = get_state_stores_count(driver, state)
     print(f'Found {cnt} stores in {state}')
