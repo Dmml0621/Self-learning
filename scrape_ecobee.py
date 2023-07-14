@@ -23,7 +23,8 @@ def ecobee_login(username: str, password: str, load_time=8) -> webdriver.Chrome:
     driver.get(url_login)
     driver.find_element("id", "username").send_keys(username)
     driver.find_element("id", "password").send_keys(password)
-    driver.find_element("name", "action").click()
+    login_button = driver.find_elements(By.TAG_NAME, "button")[-1]
+    login_button.click()
     time.sleep(load_time)
     print("Login success!")
     return driver
@@ -135,7 +136,7 @@ def download_account(account: tuple) -> None:
     ecobee_logout(driver)
 
 if __name__ == "__main__":
-    print("Welcome to the Ecobee scarping program!")
+    print("Welcome to the Ecobee scraping program!")
     print("1. Today's data")
     print("2. Last 7 day's data")
     print("3. Customize date range")
@@ -164,6 +165,8 @@ if __name__ == "__main__":
     
     accounts = [
         ("hwj-study1@umich.edu", "heatingwithjusticedata"),
+        ("hwj-study@umich.edu", "heatingwithjusticedata"),
+        ("clairejm@umich.edu", "heatingwithjusticedata")
     ]
 
     print("Account list")
