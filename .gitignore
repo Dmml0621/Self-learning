@@ -3,5 +3,5 @@ metastore_db
 .ipynb_checkpoints
 data
 fashion_clf/DF
-car_imgs
+carmax_scraper/car_imgs
 test.py
