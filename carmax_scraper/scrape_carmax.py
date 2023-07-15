@@ -6,7 +6,7 @@ import argparse
 import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+# from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
 
 parser = argparse.ArgumentParser()
@@ -96,11 +96,13 @@ def create_dir():
 
 create_dir()
 
-dc = DesiredCapabilities.CHROME
-dc['goog:loggingPrefs'] = {'performance': 'ALL'}
+# dc = DesiredCapabilities.CHROME
+# dc['goog:loggingPrefs'] = {'performance': 'ALL'}
 options = webdriver.ChromeOptions()
-options.add_argument("--headless=new")
-driver = webdriver.Chrome(desired_capabilities=dc, options=options)
+options.add_argument('--no-sandbox')
+options.add_argument('--disable-dev-shm-usage')
+options.add_argument("--headless")
+driver = webdriver.Chrome(options=options)
 
 driver.get(BASE_URL)
 
