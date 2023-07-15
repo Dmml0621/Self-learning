@@ -1,12 +1,12 @@
-FROM --platform=linux/amd64 python:latest
+FROM python:latest
 
 RUN apt-get -y update
 RUN apt-get install -y wget gnupg2 gconf-service libasound2 libatk1.0-0 libcairo2 libcups2 libfontconfig1 libgdk-pixbuf2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libxss1 fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils
 
 # install google chrome
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-RUN sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
-RUN apt-get install -y chromium
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \ 
+    && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list
+RUN apt-get update && apt-get -y install google-chrome-stable
 
 # install chromedriver
 RUN apt-get install -yqq unzip
@@ -20,4 +20,4 @@ WORKDIR /scraper
 COPY . .
 RUN pip install -r requirements.txt
 
-ENTRYPOINT [ "python", "./scrape_carmax.py" ]
+ENTRYPOINT [ "python", "scrape_carmax.py" ]

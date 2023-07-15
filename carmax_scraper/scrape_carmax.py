@@ -6,25 +6,34 @@ import argparse
 import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
-# from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.common.by import By
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--pages', help='how many times to extend car results for a page', type=int, default=4)
+parser.add_argument('--pages', help='how many times to extend car results for a page', type=int, default=9)
+parser.add_argument('--groups', help='how many groups to divide states into', type=int, default=6)
+parser.add_argument('--groupno', help='which number of group to scrape', type=int)
+
 args = parser.parse_args()
 
-SAVE_DIR = 'car_imgs/'
-METADATA_DIR = 'metadata/'
-LOAD_MORE_TIMES = args.pages
-BASE_URL = 'https://www.carmax.com/cars/all'
+if not args.groupno:
+    print('Please specify a group to scrape using --groupno argument!')
+    exit(0)
 
 common_states = [
-    "AL", "AZ", "AR", "CA", "CO", "CT", "DC", "DE", "FL", "GA", 
+    "AL", "AZ", "AR", "CO", "CT", "DC", "DE", "FL", "GA", 
     "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", 
-    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
+    "CA", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", 
     "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", 
-    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI",
 ]
+
+SAVE_DIR = 'car_imgs/'
+SUB_DIR = f'group{args.groupno}/'
+METADATA_DIR = 'metadata/'
+LOAD_MORE_TIMES = args.pages
+GROUP_LEN = len(common_states) // args.groups
+
+BASE_URL = 'https://www.carmax.com/cars/all'
 
 list_images = list()
 list_colors = list()
@@ -91,22 +100,33 @@ def get_color(car_id):
 def create_dir():
     if SAVE_DIR[:-1] not in os.listdir():
         os.mkdir(SAVE_DIR)
+    os.chdir(SAVE_DIR)
+    if SUB_DIR[:-1] not in os.listdir():
+        os.mkdir(SUB_DIR)
+    os.chdir('..')
     if METADATA_DIR[:-1] not in os.listdir(SAVE_DIR):
         os.mkdir(SAVE_DIR + METADATA_DIR)
 
+def get_driver():
+    options = webdriver.ChromeOptions()
+    options.add_argument('--no-sandbox')
+    options.add_argument('--headless=new')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--window-size=1920,1080')
+    options.add_argument('--start-maximized')
+    return webdriver.Chrome(options=options)
+
 create_dir()
-
-# dc = DesiredCapabilities.CHROME
-# dc['goog:loggingPrefs'] = {'performance': 'ALL'}
-options = webdriver.ChromeOptions()
-options.add_argument('--no-sandbox')
-options.add_argument('--disable-dev-shm-usage')
-options.add_argument("--headless")
-driver = webdriver.Chrome(options=options)
-
+driver = get_driver()
 driver.get(BASE_URL)
 
-for state in common_states:
+start_idx = (args.groupno - 1) * GROUP_LEN
+end_idx = start_idx + GROUP_LEN
+
+print(f'Starting group_{args.groupno}: {common_states[start_idx:end_idx]}...')
+
+for state in common_states[start_idx:end_idx]:
 
     cnt = get_state_stores_count(driver, state)
     print(f'Found {cnt} stores in {state}')
@@ -139,11 +159,12 @@ for state in common_states:
                 filename = car_id + '.jpg'
                 color = get_color(car_id)
                 if not color:
+                    print('Get color error!')
                     raise Exception
                 year = car_year_makes[k].text.split()[0]
                 make = car_year_makes[k].text.split()[1]
                 model = car_model_trims[k].text
-                urllib.request.urlretrieve(src, SAVE_DIR + filename)
+                urllib.request.urlretrieve(src, SAVE_DIR + SUB_DIR + filename)
 
                 list_images.append(filename)
                 list_colors.append(color)
@@ -151,7 +172,7 @@ for state in common_states:
                 list_makes.append(make)
                 list_models.append(model)
             except:
-                print('Get color/year/model/make error!')
+                print('Get year/model/make error!')
                 continue
 
 df_meta = pd.DataFrame({
@@ -162,8 +183,11 @@ df_meta = pd.DataFrame({
     'model': list_models
 })
 
-df_meta.to_csv(SAVE_DIR + METADATA_DIR + 'metadata.csv', index=False)
+df_meta.to_csv(SAVE_DIR + METADATA_DIR + f'metadata_group{args.groupno}.csv', index=False)
 
 print(f'Total cars downloaded: {len(df_meta)}.')
 
 driver.close()
+
+print('Start sleeping for one day...')
+time.sleep(86400)
