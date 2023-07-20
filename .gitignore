@@ -5,3 +5,4 @@ data
 fashion_clf/DF
 carmax_scraper/car_imgs
 test.py
+nordstorm_scraper/clothes_imgs
