@@ -10,13 +10,12 @@ from selenium.webdriver.common.by import By
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--pages', help='how many times to extend car results for a page', type=int, default=9)
-parser.add_argument('--groups', help='how many groups to divide states into', type=int, default=6)
 parser.add_argument('--groupno', help='which number of group to scrape', type=int)
 
 args = parser.parse_args()
 
-if not args.groupno:
-    print('Please specify a group to scrape using --groupno argument!')
+if not args.groupno or args.groupno > 6 or args.groupno < 1:
+    print('Please specify a group to scrape using --groupno argument, from 1 to 6!')
     exit(0)
 
 common_states = [
@@ -31,7 +30,7 @@ SAVE_DIR = 'car_imgs/'
 SUB_DIR = f'group{args.groupno}/'
 METADATA_DIR = 'metadata/'
 LOAD_MORE_TIMES = args.pages
-GROUP_LEN = len(common_states) // args.groups
+GROUP_LEN = len(common_states) // 6
 
 BASE_URL = 'https://www.carmax.com/cars/all'
 

@@ -10,15 +10,20 @@ from selenium.webdriver.common.by import By
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--pages', help='how many times to extend clothes results for a page', type=int, default=3)
+parser.add_argument('--groupno', help='which number of group to scrape', type=int)
 
 args = parser.parse_args()
 
+if not args.groupno or args.groupno > 8 or args.groupno < 1:
+    print('Please specify a group to scrape using --groupno argument, from 1 to 8!')
+    exit(0)
+
 LOAD_MORE_TIMES = args.pages
 SAVE_DIR = 'clothes_imgs/'
-# SUB_DIR = f'??/'
+SUB_DIR = f'group{args.groupno}/'
 METADATA_DIR = 'metadata/'
 genders = ['Female', 'Male']
-
+GROUP_LEN = 2
 BASE_URL = 'https://www.nordstrom.com/?origin=tab-logo'
 
 list_images = list()
@@ -66,6 +71,10 @@ def change_color(driver, index):
 def create_dir():
     if SAVE_DIR[:-1] not in os.listdir():
         os.mkdir(SAVE_DIR)
+    os.chdir(SAVE_DIR)
+    if SUB_DIR[:-1] not in os.listdir():
+        os.mkdir(SUB_DIR)
+    os.chdir('..')
     if METADATA_DIR[:-1] not in os.listdir(SAVE_DIR):
         os.mkdir(SAVE_DIR + METADATA_DIR)
 
@@ -83,22 +92,33 @@ create_dir()
 driver = get_driver()
 driver.get(BASE_URL)
 
+start_idx = (args.groupno - 1) * GROUP_LEN
+end_idx = start_idx + GROUP_LEN
+
 time.sleep(2)
 
-for gender in genders[:1]:
+for gender in genders:
 
     categories, category_cnt = get_categories_and_count(driver, gender)
     time.sleep(3)
 
-    for i, category in enumerate(categories[:2]):
+    for i, category in enumerate(categories):
 
         change_category(driver, gender, i)
 
-        colors, colors_count = get_colors_and_count(driver)
-        time.sleep(3)
+        try:
+            colors, colors_count = get_colors_and_count(driver)
+            time.sleep(3)
+        except:
+            print('Get color names error!')
+            continue
 
-        for j, color in enumerate(colors[:2]):
-            change_color(driver, j)
+        for j, color in enumerate(colors[start_idx:end_idx]):
+            try:
+                change_color(driver, j)
+            except:
+                print('Change color error!')
+                continue
             
             print(f'Downloading {gender} {color} {category}...')
 
@@ -111,7 +131,7 @@ for gender in genders[:1]:
                     except:
                         src = ia.find_element(By.TAG_NAME, 'img').get_attribute('src')
                         filename = src.split('/')[5].split('?')[0]
-                        urllib.request.urlretrieve(src, SAVE_DIR + filename)
+                        # urllib.request.urlretrieve(src, SAVE_DIR + filename)
 
                         list_images.append(filename)
                         list_colors.append(color)
@@ -123,9 +143,9 @@ for gender in genders[:1]:
                     print('Reach end of the results!')
                     break
 
-            time.sleep(3)
+            time.sleep(5)
 
-        time.sleep(3)
+        time.sleep(5)
     
     time.sleep(5)
 
@@ -134,7 +154,7 @@ df_meta = pd.DataFrame({
     'color': list_colors
 })
 
-df_meta.to_csv(SAVE_DIR + METADATA_DIR + f'metadata.csv', index=False)
+# df_meta.to_csv(SAVE_DIR + METADATA_DIR + f'metadata_group{args.groupno}.csv', index=False)
 
 driver.close()
 
